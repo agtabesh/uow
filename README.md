@@ -1,4 +1,7 @@
-# uow: Unit of Work Pattern in Go
+# Unit of Work Pattern in Go
+
+[![Documentation](https://godoc.org/github.com/agtabesh/uow?status.svg)](https://godoc.org/github.com/agtabesh/uow)
+[![Go Report Card](https://goreportcard.com/badge/github.com/agtabesh/uow)](https://goreportcard.com/report/github.com/agtabesh/uow)
 
 This Go package provides a simple implementation of the Unit of Work pattern. It facilitates managing transactions across different data sources, ensuring atomicity and consistency.
 
