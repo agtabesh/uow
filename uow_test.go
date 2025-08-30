@@ -22,8 +22,8 @@ func TestCommit(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if mt.state.Value() != "test state commited!" {
-		t.Errorf("expected state to be 'test state commited!', got '%s'", mt.state.Value())
+	if mt.state.Value() != "test state committed!" {
+		t.Errorf("expected state to be 'test state committed!', got '%s'", mt.state.Value())
 	}
 }
 

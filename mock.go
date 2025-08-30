@@ -27,12 +27,12 @@ func (s *State) Value() string {
 	return s.value
 }
 
-// Commit appends " commited!" to the state value. It uses a mutex to ensure
+// Commit appends " committed!" to the state value. It uses a mutex to ensure
 // thread safety. This simulates a successful commit operation.
 func (s *State) Commit() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.value += " commited!"
+	s.value += " committed!"
 }
 
 // Rollback appends " rolled back!" to the state value. It uses a mutex to ensure
