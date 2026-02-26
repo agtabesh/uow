@@ -101,6 +101,56 @@ func main() {
 }
 ```
 
+### Example (using `SqlTx`)
+
+```go
+package main
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+
+	"github.com/agtabesh/uow"
+	_ "github.com/lib/pq" // PostgreSQL
+)
+
+func main() {
+	// Replace with your PostgreSQL connection string
+	db, err := sql.Open("postgres", "postgres://user:password@localhost/dbname?sslmode=disable")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	sqlTx := uow.NewSqlTx(db)
+	txs := uow.New(sqlTx)
+
+	err = txs.Run(context.Background(), func(ctx context.Context) error {
+		// Get the transaction or database connection
+		tx := txs.Get(ctx).(*sql.Tx)
+		
+		// Perform SQL operations within the transaction
+		_, err := tx.ExecContext(ctx, "INSERT INTO users (name) VALUES ($1)", "John Doe")
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+	} else {
+		fmt.Println("Transaction successful!")
+	}
+}
+```
+
+Supported SQL databases (via standard `database/sql` interface):
+- PostgreSQL (using `github.com/lib/pq` or `github.com/jackc/pgx/v5/stdlib`)
+- MySQL/MariaDB (using `github.com/go-sql-driver/mysql`)
+- SQLite (using `github.com/mattn/go-sqlite3`)
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
