@@ -7,6 +7,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ctxKey is an unexported type used for context value keys to avoid collisions.
+type ctxKey string
+
+// txKey is the context key for storing the SQL transaction.
+const txKey ctxKey = "tx"
+
 // SqlTx implements the Runner interface for SQL database transactions. It manages
 // the lifecycle of SQL database connections and transactions for any database
 // that supports the standard database/sql interface (PostgreSQL, MySQL, SQLite, MariaDB, etc.).
@@ -42,7 +48,7 @@ func (s *SqlTx) Ctx(ctx context.Context) (context.Context, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error in starting transaction")
 	}
-	return context.WithValue(ctx, "tx", tx), nil
+	return context.WithValue(ctx, txKey, tx), nil
 }
 
 // Get retrieves the SQL transaction. It checks if a transaction is present
@@ -50,7 +56,7 @@ func (s *SqlTx) Ctx(ctx context.Context) (context.Context, error) {
 // it returns the database connection pool. This function provides access to the
 // database within the transaction's context.
 func (s *SqlTx) Get(ctx context.Context) any {
-	if tx, ok := ctx.Value("tx").(*sql.Tx); ok {
+	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
 		return tx
 	}
 	return s.db
@@ -60,7 +66,7 @@ func (s *SqlTx) Get(ctx context.Context) any {
 // transaction in the context and rolls it back if one exists. This function
 // is essential for handling transaction failures.
 func (s *SqlTx) Rollback(ctx context.Context) error {
-	if tx, ok := ctx.Value("tx").(*sql.Tx); ok {
+	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
 		return tx.Rollback()
 	}
 	return nil
@@ -70,7 +76,7 @@ func (s *SqlTx) Rollback(ctx context.Context) error {
 // transaction in the context and commits it if one exists. This function
 // is crucial for saving changes made within a transaction.
 func (s *SqlTx) Commit(ctx context.Context) error {
-	if tx, ok := ctx.Value("tx").(*sql.Tx); ok {
+	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
 		return tx.Commit()
 	}
 	return nil
