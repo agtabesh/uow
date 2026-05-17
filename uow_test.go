@@ -39,15 +39,15 @@ func (r *errorRunner) Ctx(ctx context.Context) (context.Context, error) {
 	return ctx, r.ctxErr
 }
 
-func (r *errorRunner) Get(ctx context.Context) any {
+func (r *errorRunner) Get(_ context.Context) any {
 	return nil
 }
 
-func (r *errorRunner) Rollback(ctx context.Context) error {
+func (r *errorRunner) Rollback(_ context.Context) error {
 	return r.rollbackErr
 }
 
-func (r *errorRunner) Commit(ctx context.Context) error {
+func (r *errorRunner) Commit(_ context.Context) error {
 	return r.commitErr
 }
 
@@ -61,7 +61,7 @@ func TestRun_CtxError(t *testing.T) {
 	ctx := context.Background()
 	ctxErr := errors.New("ctx failed")
 	u := New(&errorRunner{ctxErr: ctxErr})
-	err := u.Run(ctx, func(ctx context.Context) error {
+	err := u.Run(ctx, func(_ context.Context) error {
 		return nil
 	})
 	if err == nil {
@@ -78,7 +78,7 @@ func TestRun_FnError_NoRollbackError(t *testing.T) {
 	ctx := context.Background()
 	fnErr := errors.New("fn failed")
 	u := New(&errorRunner{})
-	err := u.Run(ctx, func(ctx context.Context) error {
+	err := u.Run(ctx, func(_ context.Context) error {
 		return fnErr
 	})
 	if err == nil {
@@ -96,7 +96,7 @@ func TestRun_DoubleError(t *testing.T) {
 	fnErr := errors.New("fn failed")
 	rbErr := errors.New("rollback failed")
 	u := New(&errorRunner{rollbackErr: rbErr})
-	err := u.Run(ctx, func(ctx context.Context) error {
+	err := u.Run(ctx, func(_ context.Context) error {
 		return fnErr
 	})
 	if err == nil {

@@ -1,3 +1,5 @@
+// Package uow provides a simple implementation of the Unit of Work pattern,
+// managing transactions across different data sources with atomicity and consistency.
 package uow
 
 import (
@@ -69,20 +71,20 @@ func (t *MockTx) Ctx(ctx context.Context) (context.Context, error) {
 
 // Get returns the internal State object. This allows access to the simulated
 // transaction state.
-func (t *MockTx) Get(ctx context.Context) any {
+func (t *MockTx) Get(_ context.Context) any {
 	return t.state
 }
 
 // Rollback calls the Rollback method on the internal State object. This simulates
 // a rollback operation in the mock transaction.
-func (t *MockTx) Rollback(ctx context.Context) error {
+func (t *MockTx) Rollback(_ context.Context) error {
 	t.state.Rollback()
 	return nil
 }
 
 // Commit calls the Commit method on the internal State object. This simulates a
 // commit operation in the mock transaction.
-func (t *MockTx) Commit(ctx context.Context) error {
+func (t *MockTx) Commit(_ context.Context) error {
 	t.state.Commit()
 	return nil
 }

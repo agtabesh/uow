@@ -12,7 +12,7 @@ type ctxKey string
 // txKey is the context key for storing the SQL transaction.
 const txKey ctxKey = "tx"
 
-// SqlTx implements the Runner interface for SQL database transactions. It manages
+// SQLTx implements the Runner interface for SQL database transactions. It manages
 // the lifecycle of SQL database connections and transactions for any database
 // that supports the standard database/sql interface (PostgreSQL, MySQL, SQLite, MariaDB, etc.).
 //
@@ -22,18 +22,18 @@ const txKey ctxKey = "tx"
 //	_ "github.com/go-sql-driver/mysql"  // MySQL/MariaDB
 //	_ "github.com/mattn/go-sqlite3"     // SQLite
 //	_ "github.com/jackc/pgx/v5/stdlib"   // PostgreSQL (alternative)
-var _ Runner = &SqlTx{}
+var _ Runner = &SQLTx{}
 
-// SqlTx struct holds the SQL database connection pool.
-type SqlTx struct {
+// SQLTx struct holds the SQL database connection pool.
+type SQLTx struct {
 	db *sql.DB
 }
 
-// NewSqlTx creates a new SqlTx instance. It takes a SQL database
+// NewSQLTx creates a new SQLTx instance. It takes a SQL database
 // connection pool as an argument. This function should be called to initialize
 // a new transaction with any SQL database.
-func NewSqlTx(db *sql.DB) *SqlTx {
-	return &SqlTx{
+func NewSQLTx(db *sql.DB) *SQLTx {
+	return &SQLTx{
 		db: db,
 	}
 }
@@ -42,7 +42,7 @@ func NewSqlTx(db *sql.DB) *SqlTx {
 // starts a new transaction with default isolation level. If any errors
 // occur during this process, they are wrapped and returned. This function
 // is crucial for initiating transactions in the context.
-func (s *SqlTx) Ctx(ctx context.Context) (context.Context, error) {
+func (s *SQLTx) Ctx(ctx context.Context) (context.Context, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error in starting transaction: %w", err)
@@ -54,7 +54,7 @@ func (s *SqlTx) Ctx(ctx context.Context) (context.Context, error) {
 // in the context. If a transaction exists, it returns the transaction. Otherwise,
 // it returns the database connection pool. This function provides access to the
 // database within the transaction's context.
-func (s *SqlTx) Get(ctx context.Context) any {
+func (s *SQLTx) Get(ctx context.Context) any {
 	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
 		return tx
 	}
@@ -64,7 +64,7 @@ func (s *SqlTx) Get(ctx context.Context) any {
 // Rollback aborts the current transaction. It checks for the presence of a
 // transaction in the context and rolls it back if one exists. This function
 // is essential for handling transaction failures.
-func (s *SqlTx) Rollback(ctx context.Context) error {
+func (s *SQLTx) Rollback(ctx context.Context) error {
 	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
 		return tx.Rollback()
 	}
@@ -74,7 +74,7 @@ func (s *SqlTx) Rollback(ctx context.Context) error {
 // Commit commits the current transaction. It checks for the presence of a
 // transaction in the context and commits it if one exists. This function
 // is crucial for saving changes made within a transaction.
-func (s *SqlTx) Commit(ctx context.Context) error {
+func (s *SQLTx) Commit(ctx context.Context) error {
 	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
 		return tx.Commit()
 	}
