@@ -39,6 +39,7 @@ func (m *MongoTx) Ctx(ctx context.Context) (context.Context, error) {
 
 	err = sess.StartTransaction()
 	if err != nil {
+		sess.EndSession(ctx)
 		return nil, fmt.Errorf("error in starting transaction: %w", err)
 	}
 	return mongo.NewSessionContext(ctx, sess), nil
