@@ -67,7 +67,7 @@ func (u *UoW) Run(ctx context.Context, fn func(ctx context.Context) error) error
 		rbErr := u.runner.Rollback(uowCtx)
 		if rbErr != nil {
 			// Return a combined error if both the operation and the rollback fail.
-			return fmt.Errorf("operation failed and rollback also failed: rollback error: %v: %w", rbErr, err)
+			return fmt.Errorf("operation failed (%w) and rollback also failed: %w", err, rbErr)
 		}
 
 		// Return the original error from the function.

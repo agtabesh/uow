@@ -90,8 +90,7 @@ func TestRun_FnError_NoRollbackError(t *testing.T) {
 }
 
 // TestRun_DoubleError verifies that when both fn and Rollback fail, both
-// errors are accessible via errors.Is. (Rollback error wrapping is handled
-// in Step 5.)
+// errors are accessible via errors.Is.
 func TestRun_DoubleError(t *testing.T) {
 	ctx := context.Background()
 	fnErr := errors.New("fn failed")
@@ -105,6 +104,9 @@ func TestRun_DoubleError(t *testing.T) {
 	}
 	if !errors.Is(err, fnErr) {
 		t.Errorf("expected errors.Is(err, fnErr) to be true, got %v", err)
+	}
+	if !errors.Is(err, rbErr) {
+		t.Errorf("expected errors.Is(err, rbErr) to be true, got %v", err)
 	}
 }
 
