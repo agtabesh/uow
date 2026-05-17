@@ -2,7 +2,10 @@ module github.com/agtabesh/uow
 
 go 1.24.2
 
-require go.mongodb.org/mongo-driver v1.17.4
+require (
+	github.com/mattn/go-sqlite3 v1.14.44
+	go.mongodb.org/mongo-driver v1.17.4
+)
 
 require (
 	github.com/golang/snappy v0.0.4 // indirect
