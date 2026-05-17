@@ -2,8 +2,7 @@ package uow
 
 import (
 	"context"
-
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 // Runner interface defines the methods required for a unit of work (UoW) runner.
@@ -58,7 +57,7 @@ func (u *UoW) Run(ctx context.Context, fn func(ctx context.Context) error) error
 	uowCtx, err := u.runner.Ctx(ctx)
 	if err != nil {
 		// Return an error if starting the transaction fails.
-		return errors.Wrap(err, "failed to start transaction")
+		return fmt.Errorf("failed to start transaction: %w", err)
 	}
 
 	// Execute the provided function within the transaction context.
@@ -68,7 +67,7 @@ func (u *UoW) Run(ctx context.Context, fn func(ctx context.Context) error) error
 		rbErr := u.runner.Rollback(uowCtx)
 		if rbErr != nil {
 			// Return a combined error if both the operation and the rollback fail.
-			return errors.Wrapf(err, "operation failed and rollback also failed: rollback error: %v", rbErr)
+			return fmt.Errorf("operation failed and rollback also failed: rollback error: %v: %w", rbErr, err)
 		}
 
 		// Return the original error from the function.

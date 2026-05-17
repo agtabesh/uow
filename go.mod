@@ -2,10 +2,7 @@ module github.com/agtabesh/uow
 
 go 1.24.2
 
-require (
-	github.com/pkg/errors v0.9.1
-	go.mongodb.org/mongo-driver v1.17.4
-)
+require go.mongodb.org/mongo-driver v1.17.4
 
 require (
 	github.com/golang/snappy v0.0.4 // indirect

@@ -3,8 +3,7 @@ package uow
 import (
 	"context"
 	"database/sql"
-
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 // ctxKey is an unexported type used for context value keys to avoid collisions.
@@ -46,7 +45,7 @@ func NewSqlTx(db *sql.DB) *SqlTx {
 func (s *SqlTx) Ctx(ctx context.Context) (context.Context, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "error in starting transaction")
+		return nil, fmt.Errorf("error in starting transaction: %w", err)
 	}
 	return context.WithValue(ctx, txKey, tx), nil
 }

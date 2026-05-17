@@ -2,8 +2,8 @@ package uow
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -39,7 +39,7 @@ func (m *MongoTx) Ctx(ctx context.Context) (context.Context, error) {
 
 	err = sess.StartTransaction()
 	if err != nil {
-		return nil, errors.Wrap(err, "error in starting transaction")
+		return nil, fmt.Errorf("error in starting transaction: %w", err)
 	}
 	return mongo.NewSessionContext(ctx, sess), nil
 }
