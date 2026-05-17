@@ -2,11 +2,23 @@
 
 [![Documentation](https://godoc.org/github.com/agtabesh/uow?status.svg)](https://godoc.org/github.com/agtabesh/uow)
 [![Go Report Card](https://goreportcard.com/badge/github.com/agtabesh/uow)](https://goreportcard.com/report/github.com/agtabesh/uow)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/agtabesh/uow)](https://golang.org)
+[![License](https://img.shields.io/github/license/agtabesh/uow)](LICENSE)
+[![CI](https://github.com/agtabesh/uow/actions/workflows/go.yml/badge.svg)](https://github.com/agtabesh/uow/actions/workflows/go.yml)
 
 This Go package provides a simple implementation of the Unit of Work pattern. It facilitates managing transactions across different data sources, ensuring atomicity and consistency.
 
 This package is particularly useful in complex applications where multiple data sources are involved.  The Unit of Work pattern promotes better software architecture by decoupling data access logic from core business processes.  By abstracting away the specifics of each data source, the `uow` package simplifies the development and maintenance of your application, making it easier to manage transactions and ensure data consistency across disparate systems. This decoupling makes the system more robust, testable, and easier to scale.
 
+## Installation
+
+```bash
+go get github.com/agtabesh/uow
+```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and changes.
 
 ## Features
 
