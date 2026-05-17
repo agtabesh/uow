@@ -29,6 +29,34 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and changes.
 - **Extensibility:** The `Runner` interface allows for easy integration with additional data sources. Simply implement the interface for your chosen data store and integrate with the `UoW`.
 - **Context Awareness:** Uses the Go context package to allow for cancellation and timeout handling during transactions.
 
+## Architecture
+
+The package revolves around two core types:
+
+### `Runner` interface
+
+Defines the contract for a transactional data source:
+
+```go
+type Runner interface {
+    Ctx(ctx context.Context) (context.Context, error)
+    Get(ctx context.Context) any
+    Commit(ctx context.Context) error
+    Rollback(ctx context.Context) error
+}
+```
+
+### `UoW` struct
+
+Orchestrates the transaction lifecycle. When you call `Run`, it executes the following sequence:
+
+1. **`Ctx`** — starts a transaction and returns a context carrying the transaction handle
+2. **`fn`** — your business logic runs inside the transaction
+3. **`Commit`** — on success, persists the changes
+4. **`Rollback`** — on any error, discards the changes
+
+If both `fn` and `Rollback` fail, both errors are accessible via `errors.Is`.
+
 ## Usage
 
 The `uow` package provides a `UoW` struct which coordinates the unit of work. You'll need to provide a `Runner` implementation tailored to your data source. The `Runner` interface defines the necessary methods for managing transactions.
