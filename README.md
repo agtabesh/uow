@@ -65,6 +65,7 @@ This package includes example implementations for:
 
 - **`MockTx`:** A mock implementation for testing purposes.
 - **`MongoTx`:** An implementation for MongoDB using `go.mongodb.org/mongo-driver/mongo`.
+- **`SQLTx`:** An implementation for any SQL database via the standard `database/sql` interface.
 
 ### Example (using `MockTx`)
 
@@ -163,7 +164,7 @@ func main() {
 	}
 	defer db.Close()
 
-	sqlTx := uow.NewSqlTx(db)
+	sqlTx := uow.NewSQLTx(db)
 	txs := uow.New(sqlTx)
 
 	err = txs.Run(context.Background(), func(ctx context.Context) error {
@@ -191,9 +192,23 @@ Supported SQL databases (via standard `database/sql` interface):
 - MySQL/MariaDB (using `github.com/go-sql-driver/mysql`)
 - SQLite (using `github.com/mattn/go-sqlite3`)
 
+## Development
+
+```bash
+make test      # run all tests
+make lint      # run golangci-lint
+make coverage  # generate coverage report
+make build     # build the package
+make tidy      # tidy Go modules
+```
+
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Contributions are welcome! Please open an issue or submit a pull request. Before submitting, ensure your changes pass linting and tests:
+
+```bash
+make lint && make test
+```
 
 ## License
 
