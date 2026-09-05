@@ -5,14 +5,15 @@ import (
 	"fmt"
 
 	"github.com/agtabesh/uow"
+	"github.com/agtabesh/uow/mock"
 )
 
 func ExampleUoW_Run() {
-	mt := uow.NewMockTx()
+	mt := mock.NewMockTx()
 	txs := uow.New(mt)
 
 	err := txs.Run(context.Background(), func(ctx context.Context) error {
-		tx := txs.Get(ctx).(*uow.State)
+		tx := txs.Get(ctx).(*mock.State)
 		tx.SetValue("example value")
 		return nil
 	})

@@ -5,6 +5,9 @@ import (
 	"fmt"
 )
 
+// ctxKey is an unexported type used for context value keys to avoid collisions.
+type ctxKey string
+
 // Runner interface defines the methods required for a unit of work (UoW) runner.
 // It encapsulates the logic for managing transactions, retrieving data within a transaction,
 // committing changes, and rolling back in case of errors. The `Ctx` method provides a

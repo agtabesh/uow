@@ -1,9 +1,11 @@
-package uow
+package sql
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/agtabesh/uow"
 )
 
 // ctxKey is an unexported type used for context value keys to avoid collisions.
@@ -22,7 +24,7 @@ const txKey ctxKey = "tx"
 //	_ "github.com/go-sql-driver/mysql"  // MySQL/MariaDB
 //	_ "github.com/mattn/go-sqlite3"     // SQLite
 //	_ "github.com/jackc/pgx/v5/stdlib"   // PostgreSQL (alternative)
-var _ Runner = &SQLTx{}
+var _ uow.Runner = &SQLTx{}
 
 // SQLTx struct holds the SQL database connection pool.
 type SQLTx struct {
@@ -32,6 +34,8 @@ type SQLTx struct {
 // NewSQLTx creates a new SQLTx instance. It takes a SQL database
 // connection pool as an argument. This function should be called to initialize
 // a new transaction with any SQL database.
+//
+// Import this package as "github.com/agtabesh/uow/sql".
 func NewSQLTx(db *sql.DB) *SQLTx {
 	return &SQLTx{
 		db: db,

@@ -1,10 +1,12 @@
-// Package uow provides a simple implementation of the Unit of Work pattern,
-// managing transactions across different data sources with atomicity and consistency.
-package uow
+// Package mock provides a mock implementation of the Unit of Work pattern
+// for testing purposes, simulating transactions without a real database.
+package mock
 
 import (
 	"context"
 	"sync"
+
+	"github.com/agtabesh/uow"
 )
 
 // State struct simulates application state and provides methods for setting,
@@ -47,7 +49,7 @@ func (s *State) Rollback() {
 
 // MockTx implements the Runner interface for testing purposes. It simulates a
 // transaction without actually interacting with a database.
-var _ Runner = &MockTx{}
+var _ uow.Runner = &MockTx{}
 
 // MockTx struct holds a State object to simulate application state changes within
 // a transaction.

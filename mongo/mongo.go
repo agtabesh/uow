@@ -1,15 +1,16 @@
-package uow
+package mongo
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/agtabesh/uow"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // MongoTx implements the Runner interface for MongoDB transactions. It manages
 // the lifecycle of MongoDB sessions and transactions.
-var _ Runner = &MongoTx{}
+var _ uow.Runner = &MongoTx{}
 
 // MongoTx struct holds the MongoDB client and database name.
 type MongoTx struct {
