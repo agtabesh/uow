@@ -29,6 +29,18 @@ type Runner interface {
 	Rollback(ctx context.Context) error
 }
 
+// depthKey is the context key used to track nested transaction depth.
+const depthKey ctxKey = "depth"
+
+// depthFrom extracts the current nesting depth from the context.
+// Returns 0 if no depth is set (i.e., outermost transaction).
+func depthFrom(ctx context.Context) int {
+	if d, ok := ctx.Value(depthKey).(int); ok {
+		return d
+	}
+	return 0
+}
+
 // UoW struct represents a unit of work (UoW). It coordinates the execution of a function
 // within a transaction, ensuring that either all changes are committed or all changes
 // are rolled back in case of an error.
@@ -50,30 +62,43 @@ func (u *UoW) Get(ctx context.Context) any {
 }
 
 // Run executes a given function within a transaction managed by the runner.
-// It handles potential errors during the function execution and transaction management.
-// If the function returns an error, the transaction is rolled back. Otherwise, the transaction is committed.
+// It supports transparent nested transactions: if a transaction is already in flight,
+// nested calls reuse the outer transaction and their Commit/Rollback become no-ops.
+// If the function returns an error at the outermost level, the real transaction is rolled back.
+// Otherwise, the transaction is committed.
 func (u *UoW) Run(ctx context.Context, fn func(ctx context.Context) error) error {
-	// Obtain a transaction-specific context from the runner.
-	uowCtx, err := u.runner.Ctx(ctx)
-	if err != nil {
-		// Return an error if starting the transaction fails.
-		return fmt.Errorf("failed to start transaction: %w", err)
+	depth := depthFrom(ctx)
+
+	var uowCtx context.Context
+	if depth == 0 {
+		// Outermost call: start a real transaction.
+		var err error
+		uowCtx, err = u.runner.Ctx(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to start transaction: %w", err)
+		}
+	} else {
+		// Nested call: reuse the existing transaction context.
+		uowCtx = ctx
 	}
 
-	// Execute the provided function within the transaction context.
-	err = fn(uowCtx)
-	if err != nil {
-		// If the function returns an error, attempt to rollback the transaction.
-		rbErr := u.runner.Rollback(uowCtx)
-		if rbErr != nil {
-			// Return a combined error if both the operation and the rollback fail.
-			return fmt.Errorf("operation failed (%w) and rollback also failed: %w", err, rbErr)
-		}
+	// Increment the nesting depth so inner calls detect the nested state.
+	uowCtx = context.WithValue(uowCtx, depthKey, depth+1)
 
-		// Return the original error from the function.
+	err := fn(uowCtx)
+	if err != nil {
+		if depth == 0 {
+			// Outermost: roll back the real transaction.
+			rbErr := u.runner.Rollback(uowCtx)
+			if rbErr != nil {
+				return fmt.Errorf("operation failed (%w) and rollback also failed: %w", err, rbErr)
+			}
+		}
 		return err
 	}
 
-	// If the function succeeds, commit the transaction.
-	return u.runner.Commit(uowCtx)
+	if depth == 0 {
+		return u.runner.Commit(uowCtx)
+	}
+	return nil
 }
