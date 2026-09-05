@@ -11,10 +11,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// TestMongoTx_Integration tests MongoDB transaction commit and rollback with a
+// TestTx_Integration tests MongoDB transaction commit and rollback with a
 // real MongoDB instance. It is skipped unless the MONGODB_URI environment
 // variable is set.
-func TestMongoTx_Integration(t *testing.T) {
+func TestTx_Integration(t *testing.T) {
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
 		t.Skip("MONGODB_URI not set; skipping integration test")
@@ -33,7 +33,7 @@ func TestMongoTx_Integration(t *testing.T) {
 	_ = col.Drop(ctx) // clean up before test
 	defer func() { _ = col.Drop(ctx) }()
 
-	mongoTx := NewMongoTx(client, dbName)
+	mongoTx := NewTx(client, dbName)
 	txs := uow.New(mongoTx)
 
 	err = txs.Run(ctx, func(ctx context.Context) error {
@@ -54,8 +54,8 @@ func TestMongoTx_Integration(t *testing.T) {
 	}
 }
 
-// TestMongoTx_Integration_Rollback tests MongoDB rollback with a real instance.
-func TestMongoTx_Integration_Rollback(t *testing.T) {
+// TestTx_Integration_Rollback tests MongoDB rollback with a real instance.
+func TestTx_Integration_Rollback(t *testing.T) {
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
 		t.Skip("MONGODB_URI not set; skipping integration test")
@@ -74,7 +74,7 @@ func TestMongoTx_Integration_Rollback(t *testing.T) {
 	_ = col.Drop(ctx) // clean up before test
 	defer func() { _ = col.Drop(ctx) }()
 
-	mongoTx := NewMongoTx(client, dbName)
+	mongoTx := NewTx(client, dbName)
 	txs := uow.New(mongoTx)
 
 	err = txs.Run(ctx, func(ctx context.Context) error {

@@ -19,7 +19,7 @@ func TestRun_CancelledContext(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	sqlTx := NewSQLTx(db)
+	sqlTx := NewTx(db)
 	txs := uow.New(sqlTx)
 
 	cancelledCtx, cancel := context.WithCancel(context.Background())
@@ -49,7 +49,7 @@ func TestSqlTx_Commit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sqlTx := NewSQLTx(db)
+	sqlTx := NewTx(db)
 	txs := uow.New(sqlTx)
 
 	err = txs.Run(context.Background(), func(ctx context.Context) error {
@@ -84,7 +84,7 @@ func TestSqlTx_Rollback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sqlTx := NewSQLTx(db)
+	sqlTx := NewTx(db)
 	txs := uow.New(sqlTx)
 
 	err = txs.Run(context.Background(), func(ctx context.Context) error {
@@ -119,7 +119,7 @@ func TestSqlTx_GetReturnDB(t *testing.T) {
 
 	defer func() { _ = db.Close() }()
 
-	sqlTx := NewSQLTx(db)
+	sqlTx := NewTx(db)
 	got := sqlTx.Get(context.Background())
 	if _, ok := got.(*sql.DB); !ok {
 		t.Errorf("expected *sql.DB, got %T", got)
@@ -140,7 +140,7 @@ func TestRun_NestedSQL_Commit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sqlTx := NewSQLTx(db)
+	sqlTx := NewTx(db)
 	txs := uow.New(sqlTx)
 
 	var outerTx, innerTx *sql.Tx
@@ -190,7 +190,7 @@ func TestRun_NestedSQL_InnerFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sqlTx := NewSQLTx(db)
+	sqlTx := NewTx(db)
 	txs := uow.New(sqlTx)
 
 	innerErr := errors.New("inner error")
@@ -235,7 +235,7 @@ func TestRun_NestedSQL_ThreeDeep(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sqlTx := NewSQLTx(db)
+	sqlTx := NewTx(db)
 	txs := uow.New(sqlTx)
 
 	err = txs.Run(context.Background(), func(ctx context.Context) error {

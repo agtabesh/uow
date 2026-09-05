@@ -47,46 +47,46 @@ func (s *State) Rollback() {
 	s.value += " rolled back!"
 }
 
-// MockTx implements the Runner interface for testing purposes. It simulates a
+// Tx implements the Runner interface for testing purposes. It simulates a
 // transaction without actually interacting with a database.
-var _ uow.Runner = &MockTx{}
+var _ uow.Runner = &Tx{}
 
-// MockTx struct holds a State object to simulate application state changes within
+// Tx struct holds a State object to simulate application state changes within
 // a transaction.
-type MockTx struct {
+type Tx struct {
 	state *State
 }
 
-// NewMockTx creates a new MockTx instance with a new State object. This function
+// NewTx creates a new Tx instance with a new State object. This function
 // is used to initialize a mock transaction for testing.
-func NewMockTx() *MockTx {
-	return &MockTx{
+func NewTx() *Tx {
+	return &Tx{
 		state: &State{},
 	}
 }
 
 // Ctx returns the context without any modification. This is a placeholder
 // function for the mock transaction.
-func (t *MockTx) Ctx(ctx context.Context) (context.Context, error) {
+func (t *Tx) Ctx(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }
 
 // Get returns the internal State object. This allows access to the simulated
 // transaction state.
-func (t *MockTx) Get(_ context.Context) any {
+func (t *Tx) Get(_ context.Context) any {
 	return t.state
 }
 
 // Rollback calls the Rollback method on the internal State object. This simulates
 // a rollback operation in the mock transaction.
-func (t *MockTx) Rollback(_ context.Context) error {
+func (t *Tx) Rollback(_ context.Context) error {
 	t.state.Rollback()
 	return nil
 }
 
 // Commit calls the Commit method on the internal State object. This simulates a
 // commit operation in the mock transaction.
-func (t *MockTx) Commit(_ context.Context) error {
+func (t *Tx) Commit(_ context.Context) error {
 	t.state.Commit()
 	return nil
 }

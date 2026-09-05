@@ -9,7 +9,7 @@ import (
 )
 
 func ExampleUoW_Run() {
-	mt := mock.NewMockTx()
+	mt := mock.NewTx()
 	txs := uow.New(mt)
 
 	err := txs.Run(context.Background(), func(ctx context.Context) error {

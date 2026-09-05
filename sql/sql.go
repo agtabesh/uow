@@ -1,3 +1,5 @@
+// Package sql provides a SQL transaction runner for the Unit of Work pattern
+// using the standard database/sql interface.
 package sql
 
 import (
@@ -14,7 +16,7 @@ type ctxKey string
 // txKey is the context key for storing the SQL transaction.
 const txKey ctxKey = "tx"
 
-// SQLTx implements the Runner interface for SQL database transactions. It manages
+// Tx implements the Runner interface for SQL database transactions. It manages
 // the lifecycle of SQL database connections and transactions for any database
 // that supports the standard database/sql interface (PostgreSQL, MySQL, SQLite, MariaDB, etc.).
 //
@@ -24,20 +26,20 @@ const txKey ctxKey = "tx"
 //	_ "github.com/go-sql-driver/mysql"  // MySQL/MariaDB
 //	_ "github.com/mattn/go-sqlite3"     // SQLite
 //	_ "github.com/jackc/pgx/v5/stdlib"   // PostgreSQL (alternative)
-var _ uow.Runner = &SQLTx{}
+var _ uow.Runner = &Tx{}
 
-// SQLTx struct holds the SQL database connection pool.
-type SQLTx struct {
+// Tx struct holds the SQL database connection pool.
+type Tx struct {
 	db *sql.DB
 }
 
-// NewSQLTx creates a new SQLTx instance. It takes a SQL database
+// NewTx creates a new Tx instance. It takes a SQL database
 // connection pool as an argument. This function should be called to initialize
 // a new transaction with any SQL database.
 //
 // Import this package as "github.com/agtabesh/uow/sql".
-func NewSQLTx(db *sql.DB) *SQLTx {
-	return &SQLTx{
+func NewTx(db *sql.DB) *Tx {
+	return &Tx{
 		db: db,
 	}
 }
@@ -46,8 +48,8 @@ func NewSQLTx(db *sql.DB) *SQLTx {
 // starts a new transaction with default isolation level. If any errors
 // occur during this process, they are wrapped and returned. This function
 // is crucial for initiating transactions in the context.
-func (s *SQLTx) Ctx(ctx context.Context) (context.Context, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+func (t *Tx) Ctx(ctx context.Context) (context.Context, error) {
+	tx, err := t.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error in starting transaction: %w", err)
 	}
@@ -58,17 +60,17 @@ func (s *SQLTx) Ctx(ctx context.Context) (context.Context, error) {
 // in the context. If a transaction exists, it returns the transaction. Otherwise,
 // it returns the database connection pool. This function provides access to the
 // database within the transaction's context.
-func (s *SQLTx) Get(ctx context.Context) any {
+func (t *Tx) Get(ctx context.Context) any {
 	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
 		return tx
 	}
-	return s.db
+	return t.db
 }
 
 // Rollback aborts the current transaction. It checks for the presence of a
 // transaction in the context and rolls it back if one exists. This function
 // is essential for handling transaction failures.
-func (s *SQLTx) Rollback(ctx context.Context) error {
+func (t *Tx) Rollback(ctx context.Context) error {
 	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
 		return tx.Rollback()
 	}
@@ -78,7 +80,7 @@ func (s *SQLTx) Rollback(ctx context.Context) error {
 // Commit commits the current transaction. It checks for the presence of a
 // transaction in the context and commits it if one exists. This function
 // is crucial for saving changes made within a transaction.
-func (s *SQLTx) Commit(ctx context.Context) error {
+func (t *Tx) Commit(ctx context.Context) error {
 	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
 		return tx.Commit()
 	}

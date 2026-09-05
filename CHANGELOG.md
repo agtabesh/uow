@@ -4,11 +4,12 @@
 
 ### Breaking Changes
 - **Package split into subpackages**: The library is now split into `uow` (core), `uow/sql`, `uow/mongo`, and `uow/mock`. Import paths changed:
-  - `uow.NewSQLTx` → `uow/sql.NewSQLTx`
-  - `uow.NewMongoTx` → `uow/mongo.NewMongoTx`
-  - `uow.NewMockTx` → `uow/mock.NewMockTx`
+  - `uow.NewSQLTx` → `uow/sql.NewTx`
+  - `uow.NewMongoTx` → `uow/mongo.NewTx`
+  - `uow.NewMockTx` → `uow/mock.NewTx`
   - `uow.State` → `uow/mock.State`
   - The `Runner` interface and `UoW` type remain in the core `uow` package.
+- **Type renames**: `SQLTx` → `Tx`, `MongoTx` → `Tx`, `MockTx` → `Tx` (in their respective subpackages) to avoid stuttering names.
 - **Dependency isolation**: SQL-only users no longer pull in the MongoDB driver; Mongo-only users no longer pull in SQL test dependencies.
 
 ### Added

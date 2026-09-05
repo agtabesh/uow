@@ -1,3 +1,5 @@
+// Package uow provides a simple implementation of the Unit of Work pattern,
+// managing transactions across different data sources with atomicity and consistency.
 package uow
 
 import (

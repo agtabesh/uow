@@ -11,7 +11,7 @@ import (
 // TestCommit tests the successful commit scenario of the unit of work pattern.
 func TestCommit(t *testing.T) {
 	ctx := context.Background()
-	mt := NewMockTx()
+	mt := NewTx()
 	txs := uow.New(mt)
 	err := txs.Run(ctx, func(ctx context.Context) error {
 		tx := txs.Get(ctx).(*State)
@@ -33,7 +33,7 @@ var ErrRollback = errors.New("rollback error")
 // TestRollback tests the rollback scenario of the unit of work pattern.
 func TestRollback(t *testing.T) {
 	ctx := context.Background()
-	mt := NewMockTx()
+	mt := NewTx()
 	txs := uow.New(mt)
 	err := txs.Run(ctx, func(ctx context.Context) error {
 		tx := txs.Get(ctx).(*State)
@@ -53,7 +53,7 @@ func TestRollback(t *testing.T) {
 // is a no-op.
 func TestRun_NestedMock(t *testing.T) {
 	ctx := context.Background()
-	mt := NewMockTx()
+	mt := NewTx()
 	txs := uow.New(mt)
 
 	err := txs.Run(ctx, func(ctx context.Context) error {

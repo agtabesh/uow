@@ -25,7 +25,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and changes.
 - **Transaction Management:** Handles transaction initiation, commit, and rollback across various data sources.
 - **Abstraction:** Abstracts away the specifics of individual data sources, providing a consistent interface. This allows for easy swapping of data sources without modifying core application logic.
 - **Error Handling:** Robust error handling, including rollback on failure. Provides informative error messages to aid in debugging.
-- **Testability:** Designed for easy testing with mock implementations. Includes a `MockTx` implementation for simplified unit testing.
+- **Testability:** Designed for easy testing with mock implementations. Includes a `mock.Tx` implementation for simplified unit testing.
 - **Extensibility:** The `Runner` interface allows for easy integration with additional data sources. Simply implement the interface for your chosen data store and integrate with the `UoW`.
 - **Context Awareness:** Uses the Go context package to allow for cancellation and timeout handling during transactions.
 
@@ -36,9 +36,9 @@ The library is split into subpackages so you only pull in the dependencies you n
 | Package | Purpose | External deps |
 |---------|---------|---------------|
 | `github.com/agtabesh/uow` | Core: `Runner` interface, `UoW` orchestration | none (stdlib only) |
-| `github.com/agtabesh/uow/sql` | `SQLTx` for any `database/sql` database | none (stdlib only) |
-| `github.com/agtabesh/uow/mongo` | `MongoTx` for MongoDB | `go.mongodb.org/mongo-driver` |
-| `github.com/agtabesh/uow/mock` | `MockTx` for testing | none (stdlib only) |
+| `github.com/agtabesh/uow/sql` | `Tx` for any `database/sql` database | none (stdlib only) |
+| `github.com/agtabesh/uow/mongo` | `Tx` for MongoDB | `go.mongodb.org/mongo-driver` |
+| `github.com/agtabesh/uow/mock` | `Tx` for testing | none (stdlib only) |
 
 SQL users import only `uow` + `uow/sql` — the MongoDB driver is never pulled in.
 Mongo users import only `uow` + `uow/mongo`.
@@ -60,7 +60,7 @@ type Runner interface {
 }
 ```
 
-The `Runner` interface is defined in the core `github.com/agtabesh/uow` package. Concrete implementations live in the subpackages: `sql.SQLTx`, `mongo.MongoTx`, and `mock.MockTx`.
+The `Runner` interface is defined in the core `github.com/agtabesh/uow` package. Concrete implementations live in the subpackages: `sql.Tx`, `mongo.Tx`, and `mock.Tx`.
 
 ### `UoW` struct
 
@@ -79,11 +79,11 @@ The `uow` package provides a `UoW` struct which coordinates the unit of work. Yo
 
 Example implementations live in subpackages:
 
-- **`mock.MockTx`** (`github.com/agtabesh/uow/mock`): A mock implementation for testing purposes.
-- **`mongo.MongoTx`** (`github.com/agtabesh/uow/mongo`): An implementation for MongoDB using `go.mongodb.org/mongo-driver/mongo`.
-- **`sql.SQLTx`** (`github.com/agtabesh/uow/sql`): An implementation for any SQL database via the standard `database/sql` interface.
+- **`mock.Tx`** (`github.com/agtabesh/uow/mock`): A mock implementation for testing purposes.
+- **`mongo.Tx`** (`github.com/agtabesh/uow/mongo`): An implementation for MongoDB using `go.mongodb.org/mongo-driver/mongo`.
+- **`sql.Tx`** (`github.com/agtabesh/uow/sql`): An implementation for any SQL database via the standard `database/sql` interface.
 
-### Example (using `MockTx`)
+### Example (using `mock.Tx`)
 
 ```go
 package main
@@ -96,9 +96,9 @@ import (
 )
 
 func main() {
-	// Create a new MockTx
-	mt := mock.NewMockTx()
-	// Create a new UoW using the MockTx
+	// Create a new mock.Tx
+	mt := mock.NewTx()
+	// Create a new UoW using the mock.Tx
 	txs := uow.New(mt)
 
 	// Run the unit of work
@@ -120,7 +120,7 @@ func main() {
 }
 ```
 
-### Example (using `MongoTx`)
+### Example (using `mongo.Tx`)
 
 ```go
 package main
@@ -142,7 +142,7 @@ func main() {
 	}
 	defer client.Disconnect(context.TODO())
 	// uowmongo is aliased to avoid colliding with the driver's "mongo" package
-	mt := uowmongo.NewMongoTx(client, "your_database_name")
+	mt := uowmongo.NewTx(client, "your_database_name")
 	txs := uow.New(mt)
 
 	err = txs.Run(context.Background(), func(ctx context.Context) error {
@@ -161,7 +161,7 @@ func main() {
 }
 ```
 
-### Example (using `SqlTx`)
+### Example (using `sql.Tx`)
 
 ```go
 package main
@@ -177,6 +177,7 @@ import (
 )
 
 func main() {
+	// uowsql.Tx is the runner; sql.Tx (database/sql) is the transaction returned by Get
 	// Replace with your PostgreSQL connection string
 	db, err := sql.Open("postgres", "postgres://user:password@localhost/dbname?sslmode=disable")
 	if err != nil {
@@ -185,7 +186,7 @@ func main() {
 	defer db.Close()
 
 	// uowsql is aliased to avoid colliding with the standard "database/sql" package
-	sqlTx := uowsql.NewSQLTx(db)
+	sqlTx := uowsql.NewTx(db)
 	txs := uow.New(sqlTx)
 
 	err = txs.Run(context.Background(), func(ctx context.Context) error {
