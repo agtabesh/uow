@@ -267,3 +267,96 @@ func TestRun_NestedSQL_ThreeDeep(t *testing.T) {
 		t.Errorf("expected 3 rows after three-deep nested commit, got %d", count)
 	}
 }
+
+// TestTx_Executor_OutsideTransaction verifies that Executor returns *sql.DB
+// when called outside a transaction.
+func TestTx_Executor_OutsideTransaction(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+
+	sqlTx := NewTx(db)
+	exec := sqlTx.Executor(context.Background())
+	if _, ok := exec.(*sql.DB); !ok {
+		t.Errorf("expected *sql.DB, got %T", exec)
+	}
+}
+
+// TestTx_Executor_InsideTransaction verifies that Executor returns *sql.Tx
+// when called inside a transaction, and that queries run through it are
+// committed atomically.
+func TestTx_Executor_InsideTransaction(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+
+	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sqlTx := NewTx(db)
+	txs := uow.New(sqlTx)
+
+	err = txs.Run(context.Background(), func(ctx context.Context) error {
+		exec := sqlTx.Executor(ctx)
+		if _, ok := exec.(*sql.Tx); !ok {
+			t.Errorf("expected *sql.Tx inside transaction, got %T", exec)
+		}
+		_, err := exec.ExecContext(ctx, "INSERT INTO test (name) VALUES (?)", "executor")
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM test").Scan(&count)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 row, got %d", count)
+	}
+}
+
+// TestTx_Executor_QueryRow verifies that QueryRowContext works through the
+// Executor interface inside a transaction.
+func TestTx_Executor_QueryRow(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+
+	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sqlTx := NewTx(db)
+	txs := uow.New(sqlTx)
+
+	err = txs.Run(context.Background(), func(ctx context.Context) error {
+		exec := sqlTx.Executor(ctx)
+		if _, err := exec.ExecContext(ctx, "INSERT INTO test (name) VALUES (?)", "queryrow"); err != nil {
+			return err
+		}
+		var name string
+		err := exec.QueryRowContext(ctx, "SELECT name FROM test WHERE id = 1").Scan(&name)
+		if err != nil {
+			return err
+		}
+		if name != "queryrow" {
+			t.Errorf("expected name 'queryrow', got '%s'", name)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}

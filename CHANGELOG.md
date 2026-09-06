@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0] - 2026-09-06
+
+### Added
+- **`sql.Executor` interface and `sql.Tx.Executor(ctx)` method**: a type-safe
+  accessor returning the active SQL handle (`*sql.Tx` inside a transaction,
+  `*sql.DB` outside). Both implement the `Executor` interface, so repository
+  code can run the same statements in or out of a transaction without type
+  assertions.
+
 ## [0.3.0] - 2026-09-06
 
 ### Breaking Changes

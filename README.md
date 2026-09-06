@@ -209,6 +209,24 @@ func main() {
 }
 ```
 
+### Typed SQL executor
+
+Both `*sql.DB` and `*sql.Tx` implement the `Executor` interface
+(`ExecContext`, `PrepareContext`, `QueryContext`, `QueryRowContext`). Use
+`sqlTx.Executor(ctx)` to get a type-safe handle that works both inside and
+outside a transaction — no type assertions needed:
+
+```go
+err := txs.Run(ctx, func(ctx context.Context) error {
+    exec := sqlTx.Executor(ctx) // *sql.Tx inside, *sql.DB outside
+    _, err := exec.ExecContext(ctx, "INSERT INTO users (name) VALUES ($1)", "John Doe")
+    return err
+})
+```
+
+This lets repository code accept a single `Executor` parameter and run the
+same statements in or out of a transaction.
+
 Supported SQL databases (via standard `database/sql` interface):
 - PostgreSQL (using `github.com/lib/pq` or `github.com/jackc/pgx/v5/stdlib`)
 - MySQL/MariaDB (using `github.com/go-sql-driver/mysql`)
