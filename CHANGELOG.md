@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0] - 2026-09-06
+
+### Breaking Changes
+- **Package split into subpackages**: The library is now split into `uow` (core), `uow/sql`, `uow/mongo`, and `uow/mock`. Import paths changed:
+  - `uow.NewSQLTx` → `uow/sql.NewTx`
+  - `uow.NewMongoTx` → `uow/mongo.NewTx`
+  - `uow.NewMockTx` → `uow/mock.NewTx`
+  - `uow.State` → `uow/mock.State`
+  - The `Runner` interface and `UoW` type remain in the core `uow` package.
+- **Type renames**: `SQLTx` → `Tx`, `MongoTx` → `Tx`, `MockTx` → `Tx` (in their respective subpackages) to avoid stuttering names.
+- **Dependency isolation**: SQL-only users no longer pull in the MongoDB driver; Mongo-only users no longer pull in SQL test dependencies.
+
+### Added
+- Nested transaction support: `Run` calls can be nested; inner calls reuse the outer transaction and their `Commit`/`Rollback` become no-ops. Inner errors propagate to the outermost `Run`, which rolls back the entire transaction.
+
 ## [0.2.1] - 2026-05-17
 
 ### Added

@@ -25,13 +25,27 @@ See [CHANGELOG.md](CHANGELOG.md) for version history and changes.
 - **Transaction Management:** Handles transaction initiation, commit, and rollback across various data sources.
 - **Abstraction:** Abstracts away the specifics of individual data sources, providing a consistent interface. This allows for easy swapping of data sources without modifying core application logic.
 - **Error Handling:** Robust error handling, including rollback on failure. Provides informative error messages to aid in debugging.
-- **Testability:** Designed for easy testing with mock implementations. Includes a `MockTx` implementation for simplified unit testing.
+- **Testability:** Designed for easy testing with mock implementations. Includes a `mock.Tx` implementation for simplified unit testing.
 - **Extensibility:** The `Runner` interface allows for easy integration with additional data sources. Simply implement the interface for your chosen data store and integrate with the `UoW`.
 - **Context Awareness:** Uses the Go context package to allow for cancellation and timeout handling during transactions.
 
+## Package Structure
+
+The library is split into subpackages so you only pull in the dependencies you need:
+
+| Package | Purpose | External deps |
+|---------|---------|---------------|
+| `github.com/agtabesh/uow` | Core: `Runner` interface, `UoW` orchestration | none (stdlib only) |
+| `github.com/agtabesh/uow/sql` | `Tx` for any `database/sql` database | none (stdlib only) |
+| `github.com/agtabesh/uow/mongo` | `Tx` for MongoDB | `go.mongodb.org/mongo-driver` |
+| `github.com/agtabesh/uow/mock` | `Tx` for testing | none (stdlib only) |
+
+SQL users import only `uow` + `uow/sql` — the MongoDB driver is never pulled in.
+Mongo users import only `uow` + `uow/mongo`.
+
 ## Architecture
 
-The package revolves around two core types:
+The core `uow` package revolves around two types:
 
 ### `Runner` interface
 
@@ -45,6 +59,8 @@ type Runner interface {
     Rollback(ctx context.Context) error
 }
 ```
+
+The `Runner` interface is defined in the core `github.com/agtabesh/uow` package. Concrete implementations live in the subpackages: `sql.Tx`, `mongo.Tx`, and `mock.Tx`.
 
 ### `UoW` struct
 
@@ -61,13 +77,13 @@ If both `fn` and `Rollback` fail, both errors are accessible via `errors.Is`.
 
 The `uow` package provides a `UoW` struct which coordinates the unit of work. You'll need to provide a `Runner` implementation tailored to your data source. The `Runner` interface defines the necessary methods for managing transactions.
 
-This package includes example implementations for:
+Example implementations live in subpackages:
 
-- **`MockTx`:** A mock implementation for testing purposes.
-- **`MongoTx`:** An implementation for MongoDB using `go.mongodb.org/mongo-driver/mongo`.
-- **`SQLTx`:** An implementation for any SQL database via the standard `database/sql` interface.
+- **`mock.Tx`** (`github.com/agtabesh/uow/mock`): A mock implementation for testing purposes.
+- **`mongo.Tx`** (`github.com/agtabesh/uow/mongo`): An implementation for MongoDB using `go.mongodb.org/mongo-driver/mongo`.
+- **`sql.Tx`** (`github.com/agtabesh/uow/sql`): An implementation for any SQL database via the standard `database/sql` interface.
 
-### Example (using `MockTx`)
+### Example (using `mock.Tx`)
 
 ```go
 package main
@@ -76,18 +92,19 @@ import (
 	"context"
 	"fmt"
 	"github.com/agtabesh/uow"
+	"github.com/agtabesh/uow/mock"
 )
 
 func main() {
-	// Create a new MockTx
-	mt := uow.NewMockTx()
-	// Create a new UoW using the MockTx
+	// Create a new mock.Tx
+	mt := mock.NewTx()
+	// Create a new UoW using the mock.Tx
 	txs := uow.New(mt)
 
 	// Run the unit of work
 	err := txs.Run(context.Background(), func(ctx context.Context) error {
 		// Get the transaction state
-		tx := txs.Get(ctx).(*uow.State)
+		tx := txs.Get(ctx).(*mock.State)
 		// Perform operations on the data source
 		tx.SetValue("Test Value")
 		// Simulate an error. Remove this line for successful commit
@@ -103,7 +120,7 @@ func main() {
 }
 ```
 
-### Example (using `MongoTx`)
+### Example (using `mongo.Tx`)
 
 ```go
 package main
@@ -112,6 +129,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/agtabesh/uow"
+	uowmongo "github.com/agtabesh/uow/mongo"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -123,7 +141,8 @@ func main() {
 		panic(err)
 	}
 	defer client.Disconnect(context.TODO())
-	mt := uow.NewMongoTx(client, "your_database_name")
+	// uowmongo is aliased to avoid colliding with the driver's "mongo" package
+	mt := uowmongo.NewTx(client, "your_database_name")
 	txs := uow.New(mt)
 
 	err = txs.Run(context.Background(), func(ctx context.Context) error {
@@ -142,7 +161,7 @@ func main() {
 }
 ```
 
-### Example (using `SqlTx`)
+### Example (using `sql.Tx`)
 
 ```go
 package main
@@ -153,10 +172,12 @@ import (
 	"fmt"
 
 	"github.com/agtabesh/uow"
+	uowsql "github.com/agtabesh/uow/sql"
 	_ "github.com/lib/pq" // PostgreSQL
 )
 
 func main() {
+	// uowsql.Tx is the runner; sql.Tx (database/sql) is the transaction returned by Get
 	// Replace with your PostgreSQL connection string
 	db, err := sql.Open("postgres", "postgres://user:password@localhost/dbname?sslmode=disable")
 	if err != nil {
@@ -164,7 +185,8 @@ func main() {
 	}
 	defer db.Close()
 
-	sqlTx := uow.NewSQLTx(db)
+	// uowsql is aliased to avoid colliding with the standard "database/sql" package
+	sqlTx := uowsql.NewTx(db)
 	txs := uow.New(sqlTx)
 
 	err = txs.Run(context.Background(), func(ctx context.Context) error {
@@ -191,6 +213,23 @@ Supported SQL databases (via standard `database/sql` interface):
 - PostgreSQL (using `github.com/lib/pq` or `github.com/jackc/pgx/v5/stdlib`)
 - MySQL/MariaDB (using `github.com/go-sql-driver/mysql`)
 - SQLite (using `github.com/mattn/go-sqlite3`)
+
+## Nested Transactions
+
+`Run` calls can be nested. An inner `Run` reuses the outer transaction instead of
+starting a new one — inner `Commit`/`Rollback` become no-ops. If any inner `Run`
+returns an error, it propagates to the outermost `Run`, which rolls back the entire
+transaction.
+
+```go
+err := txs.Run(ctx, func(ctx context.Context) error {
+	// outer work...
+	return txs.Run(ctx, func(ctx context.Context) error {
+		// inner work — shares the outer transaction
+		return nil
+	})
+})
+```
 
 ## Development
 

@@ -1,9 +1,14 @@
+// Package uow provides a simple implementation of the Unit of Work pattern,
+// managing transactions across different data sources with atomicity and consistency.
 package uow
 
 import (
 	"context"
 	"fmt"
 )
+
+// ctxKey is an unexported type used for context value keys to avoid collisions.
+type ctxKey string
 
 // Runner interface defines the methods required for a unit of work (UoW) runner.
 // It encapsulates the logic for managing transactions, retrieving data within a transaction,
