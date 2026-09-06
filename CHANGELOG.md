@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.0] - 2026-09-06
+
+### Added
+- **`mock.Tx.State(ctx)` method**: a type-safe accessor returning the
+  `*State` object. No type assertions needed.
+
 ## [0.5.0] - 2026-09-06
 
 ### Added

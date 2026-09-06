@@ -14,7 +14,7 @@ func TestCommit(t *testing.T) {
 	mt := NewTx()
 	txs := uow.New(mt)
 	err := txs.Run(ctx, func(ctx context.Context) error {
-		tx := txs.Get(ctx).(*State)
+		tx := mt.State(ctx)
 		tx.SetValue("test state")
 		return nil
 	})
@@ -36,7 +36,7 @@ func TestRollback(t *testing.T) {
 	mt := NewTx()
 	txs := uow.New(mt)
 	err := txs.Run(ctx, func(ctx context.Context) error {
-		tx := txs.Get(ctx).(*State)
+		tx := mt.State(ctx)
 		tx.SetValue("test state")
 		return ErrRollback
 	})
@@ -57,11 +57,11 @@ func TestRun_NestedMock(t *testing.T) {
 	txs := uow.New(mt)
 
 	err := txs.Run(ctx, func(ctx context.Context) error {
-		tx := txs.Get(ctx).(*State)
+		tx := mt.State(ctx)
 		tx.SetValue("outer")
 
 		return txs.Run(ctx, func(ctx context.Context) error {
-			tx := txs.Get(ctx).(*State)
+			tx := mt.State(ctx)
 			tx.SetValue("inner")
 			return nil
 		})
@@ -72,5 +72,22 @@ func TestRun_NestedMock(t *testing.T) {
 
 	if mt.state.Value() != "inner committed!" {
 		t.Errorf("expected state to be 'inner committed!', got '%s'", mt.state.Value())
+	}
+}
+
+// TestTx_State verifies that the State accessor returns the internal State
+// object and that it can be used to set and read values.
+func TestTx_State(t *testing.T) {
+	ctx := context.Background()
+	mt := NewTx()
+
+	state := mt.State(ctx)
+	if state == nil {
+		t.Fatal("expected non-nil State")
+	}
+
+	state.SetValue("hello")
+	if got := mt.State(ctx).Value(); got != "hello" {
+		t.Errorf("expected value 'hello', got '%s'", got)
 	}
 }

@@ -120,6 +120,19 @@ func main() {
 }
 ```
 
+### Typed state accessor
+
+Use `mockTx.State(ctx)` to get a type-safe `*State` handle — no type
+assertions needed.
+
+```go
+err := txs.Run(ctx, func(ctx context.Context) error {
+    state := mockTx.State(ctx) // *State, type-safe
+    state.SetValue("hello")
+    return nil
+})
+```
+
 ### Example (using `mongo.Tx`)
 
 ```go
