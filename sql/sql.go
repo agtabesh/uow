@@ -16,6 +16,16 @@ type ctxKey string
 // txKey is the context key for storing the SQL transaction.
 const txKey ctxKey = "tx"
 
+// Executor is the common query surface implemented by both *sql.DB and *sql.Tx.
+// It allows repository code to run the same SQL statements inside and outside
+// a transaction without type assertions.
+type Executor interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
 // Tx implements the Runner interface for SQL database transactions. It manages
 // the lifecycle of SQL database connections and transactions for any database
 // that supports the standard database/sql interface (PostgreSQL, MySQL, SQLite, MariaDB, etc.).
@@ -27,6 +37,8 @@ const txKey ctxKey = "tx"
 //	_ "github.com/mattn/go-sqlite3"     // SQLite
 //	_ "github.com/jackc/pgx/v5/stdlib"   // PostgreSQL (alternative)
 var _ uow.Runner = &Tx{}
+var _ Executor = (*sql.DB)(nil)
+var _ Executor = (*sql.Tx)(nil)
 
 // Tx struct holds the SQL database connection pool.
 type Tx struct {
@@ -61,6 +73,17 @@ func (t *Tx) Ctx(ctx context.Context) (context.Context, error) {
 // it returns the database connection pool. This function provides access to the
 // database within the transaction's context.
 func (t *Tx) Get(ctx context.Context) any {
+	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
+		return tx
+	}
+	return t.db
+}
+
+// Executor returns the active SQL executor. Inside a transaction it returns
+// the *sql.Tx; outside a transaction it returns the *sql.DB. Both implement
+// the Executor interface, so repository code can use the returned value
+// without type assertions.
+func (t *Tx) Executor(ctx context.Context) Executor {
 	if tx, ok := ctx.Value(txKey).(*sql.Tx); ok {
 		return tx
 	}
