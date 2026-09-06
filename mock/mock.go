@@ -77,6 +77,12 @@ func (t *Tx) Get(_ context.Context) any {
 	return t.state
 }
 
+// State returns the internal State object. This provides a type-safe accessor
+// to the simulated transaction state without type assertions.
+func (t *Tx) State(_ context.Context) *State {
+	return t.state
+}
+
 // Rollback calls the Rollback method on the internal State object. This simulates
 // a rollback operation in the mock transaction.
 func (t *Tx) Rollback(_ context.Context) error {
