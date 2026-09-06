@@ -34,6 +34,38 @@ func (r *errorRunner) Commit(_ context.Context) error {
 // tests.
 var ErrRollback = errors.New("rollback error")
 
+// recordingRunner records calls to Ctx, Commit, and Rollback for verifying
+// nested transaction behavior.
+type recordingRunner struct {
+	ctxCalls      int
+	commitCalls   int
+	rollbackCalls int
+	ctxErr        error
+	commitErr     error
+	rollbackErr   error
+	marker        context.Context // returned by Ctx to verify propagation
+}
+
+func (r *recordingRunner) Ctx(ctx context.Context) (context.Context, error) {
+	r.ctxCalls++
+	if r.marker != nil {
+		return r.marker, r.ctxErr
+	}
+	return ctx, r.ctxErr
+}
+
+func (r *recordingRunner) Get(_ context.Context) any { return nil }
+
+func (r *recordingRunner) Commit(_ context.Context) error {
+	r.commitCalls++
+	return r.commitErr
+}
+
+func (r *recordingRunner) Rollback(_ context.Context) error {
+	r.rollbackCalls++
+	return r.rollbackErr
+}
+
 // TestRun_CtxError verifies that when Ctx returns an error, Run wraps it and
 // makes it accessible via errors.Is.
 func TestRun_CtxError(t *testing.T) {
@@ -164,5 +196,138 @@ func TestRun_TableDriven(t *testing.T) {
 				t.Errorf("expected errors.Is(err, wantCmErr) to be true, got %v", err)
 			}
 		})
+	}
+}
+
+// TestRun_Nested_InnerReusesOuterContext verifies that a nested Run does not
+// start a new transaction: Ctx is called exactly once for the outer Run.
+func TestRun_Nested_InnerReusesOuterContext(t *testing.T) {
+	r := &recordingRunner{}
+	u := New(r)
+	err := u.Run(context.Background(), func(ctx context.Context) error {
+		return u.Run(ctx, func(_ context.Context) error { return nil })
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.ctxCalls != 1 {
+		t.Errorf("expected Ctx called once, got %d", r.ctxCalls)
+	}
+}
+
+// TestRun_Nested_InnerCommitIsNoop verifies that a successful nested Run does
+// not commit: Commit is called exactly once, at the outermost level.
+func TestRun_Nested_InnerCommitIsNoop(t *testing.T) {
+	r := &recordingRunner{}
+	u := New(r)
+	err := u.Run(context.Background(), func(ctx context.Context) error {
+		return u.Run(ctx, func(_ context.Context) error { return nil })
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.commitCalls != 1 {
+		t.Errorf("expected Commit called once, got %d", r.commitCalls)
+	}
+}
+
+// TestRun_Nested_InnerRollbackIsNoop verifies that a failing nested Run does
+// not roll back by itself: Rollback is called exactly once, at the outermost
+// level, and the inner error propagates.
+func TestRun_Nested_InnerRollbackIsNoop(t *testing.T) {
+	innerErr := errors.New("inner error")
+	r := &recordingRunner{}
+	u := New(r)
+	err := u.Run(context.Background(), func(ctx context.Context) error {
+		return u.Run(ctx, func(_ context.Context) error { return innerErr })
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !errors.Is(err, innerErr) {
+		t.Errorf("expected errors.Is(err, innerErr) to be true, got %v", err)
+	}
+	if r.rollbackCalls != 1 {
+		t.Errorf("expected Rollback called once, got %d", r.rollbackCalls)
+	}
+	if r.commitCalls != 0 {
+		t.Errorf("expected Commit not called, got %d", r.commitCalls)
+	}
+}
+
+// TestRun_CommitError verifies that a Commit failure is returned to the caller.
+// It also documents current behavior: Rollback is not attempted when Commit
+// fails (the transaction is already in an unknown state).
+func TestRun_CommitError(t *testing.T) {
+	cmErr := errors.New("commit failed")
+	r := &recordingRunner{commitErr: cmErr}
+	u := New(r)
+	err := u.Run(context.Background(), func(_ context.Context) error { return nil })
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !errors.Is(err, cmErr) {
+		t.Errorf("expected errors.Is(err, cmErr) to be true, got %v", err)
+	}
+	if r.rollbackCalls != 0 {
+		t.Errorf("expected Rollback not called on commit failure, got %d calls", r.rollbackCalls)
+	}
+}
+
+// TestRun_Panic_Propagates verifies that a panic inside fn propagates to the
+// caller (Run does not recover panics).
+func TestRun_Panic_Propagates(t *testing.T) {
+	r := &recordingRunner{}
+	u := New(r)
+	defer func() {
+		if recover() == nil {
+			t.Error("expected panic to propagate")
+		}
+	}()
+	_ = u.Run(context.Background(), func(_ context.Context) error {
+		panic("boom")
+	})
+}
+
+// TestRun_ContextPropagation verifies that fn receives the context returned by
+// the runner's Ctx method (not the original context).
+func TestRun_ContextPropagation(t *testing.T) {
+	marker := context.WithValue(context.Background(), ctxKey("marker"), "yes")
+	r := &recordingRunner{marker: marker}
+	u := New(r)
+	var got context.Context
+	err := u.Run(context.Background(), func(ctx context.Context) error {
+		got = ctx
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil {
+		t.Fatal("expected fn to receive a context")
+	}
+	if v, _ := got.Value(ctxKey("marker")).(string); v != "yes" {
+		t.Errorf("expected fn to receive ctx from Ctx, got %v", got.Value("marker"))
+	}
+}
+
+// TestNew_NilRunner_Panics verifies that calling Run with a nil runner panics
+// (documenting that New requires a non-nil Runner).
+func TestNew_NilRunner_Panics(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("expected panic for nil runner")
+		}
+	}()
+	u := New(nil)
+	_ = u.Run(context.Background(), func(_ context.Context) error { return nil })
+}
+
+// TestRun_GetDelegates verifies that UoW.Get delegates to the runner's Get.
+func TestRun_GetDelegates(t *testing.T) {
+	r := &recordingRunner{}
+	u := New(r)
+	if got := u.Get(context.Background()); got != nil {
+		t.Errorf("expected nil from Get, got %v", got)
 	}
 }

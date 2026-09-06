@@ -114,3 +114,52 @@ func TestTx_Database_OutsideTransaction(t *testing.T) {
 		t.Errorf("expected database name 'test_db', got '%s'", db.Name())
 	}
 }
+
+// TestTx_Commit_OutsideTransaction verifies that Commit returns nil when no
+// transaction is active.
+func TestTx_Commit_OutsideTransaction(t *testing.T) {
+	//nolint:staticcheck // NewClient avoids a real connection; Connect would require a live server.
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = client.Disconnect(context.Background()) }()
+
+	mongoTx := NewTx(client, "test_db")
+	if err := mongoTx.Commit(context.Background()); err != nil {
+		t.Errorf("expected nil error outside transaction, got %v", err)
+	}
+}
+
+// TestTx_Rollback_OutsideTransaction verifies that Rollback returns nil when
+// no transaction is active.
+func TestTx_Rollback_OutsideTransaction(t *testing.T) {
+	//nolint:staticcheck // NewClient avoids a real connection; Connect would require a live server.
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = client.Disconnect(context.Background()) }()
+
+	mongoTx := NewTx(client, "test_db")
+	if err := mongoTx.Rollback(context.Background()); err != nil {
+		t.Errorf("expected nil error outside transaction, got %v", err)
+	}
+}
+
+// TestTx_Get_OutsideTransaction verifies that Get returns a *mongo.Database
+// when called outside a transaction.
+func TestTx_Get_OutsideTransaction(t *testing.T) {
+	//nolint:staticcheck // NewClient avoids a real connection; Connect would require a live server.
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = client.Disconnect(context.Background()) }()
+
+	mongoTx := NewTx(client, "test_db")
+	got := mongoTx.Get(context.Background())
+	if _, ok := got.(*mongo.Database); !ok {
+		t.Errorf("expected *mongo.Database, got %T", got)
+	}
+}
