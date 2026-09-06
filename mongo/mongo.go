@@ -59,6 +59,18 @@ func (t *Tx) Get(ctx context.Context) any {
 	return t.client.Database(t.dbName)
 }
 
+// Database returns the MongoDB database handle. Inside a transaction it
+// returns the database bound to the active session; outside a transaction it
+// returns the database from the client directly. Operations on the returned
+// database participate in the transaction when a session context is active.
+func (t *Tx) Database(ctx context.Context) *mongo.Database {
+	sess := mongo.SessionFromContext(ctx)
+	if sess != nil {
+		return sess.Client().Database(t.dbName)
+	}
+	return t.client.Database(t.dbName)
+}
+
 // Rollback aborts the current transaction. It checks for the presence of a
 // session in the context and aborts the transaction if one exists. The session
 // is then ended. This function is essential for handling transaction failures.

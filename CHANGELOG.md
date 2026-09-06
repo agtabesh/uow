@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0] - 2026-09-06
+
+### Added
+- **`mongo.Tx.Database(ctx)` method**: a type-safe accessor returning the
+  `*mongo.Database` handle. Inside a transaction it returns the database bound
+  to the active session; outside a transaction it returns the client's
+  database. No type assertions needed.
+
 ## [0.4.0] - 2026-09-06
 
 ### Added

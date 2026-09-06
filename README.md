@@ -161,6 +161,20 @@ func main() {
 }
 ```
 
+### Typed database accessor
+
+Use `mongoTx.Database(ctx)` to get a type-safe `*mongo.Database` handle — no
+type assertions needed. Inside a transaction it returns the database bound to
+the active session; outside a transaction it returns the client's database.
+
+```go
+err := txs.Run(ctx, func(ctx context.Context) error {
+    db := mongoTx.Database(ctx) // *mongo.Database, session-aware
+    _, err := db.Collection("users").InsertOne(ctx, map[string]string{"name": "John"})
+    return err
+})
+```
+
 ### Example (using `sql.Tx`)
 
 ```go
