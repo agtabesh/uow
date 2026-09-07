@@ -18,7 +18,7 @@ jobs:
         image: mongo:8
         ports:
           - 27017:27017
-        command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+        command: mongod --replSet rs0 --bind_ip_all --port 27017
         options: >-
           --health-cmd "mongosh --quiet --eval 'db.runCommand({ping: 1}).ok'"
           --health-interval 10s
