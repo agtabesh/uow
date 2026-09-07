@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/agtabesh/uow"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // Tx implements the Runner interface for MongoDB transactions. It manages
