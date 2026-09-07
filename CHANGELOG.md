@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0] - 2026-09-07
+
+### Added
+- **PostgreSQL integration tests**: the GitHub Actions workflow now starts a
+  `postgres:16` service container and sets `POSTGRES_URI`, so the SQL runner
+  is tested against a real PostgreSQL server (commit, rollback, and nested
+  transactions). Tests use `github.com/jackc/pgx/v5/stdlib` as the driver.
+
 ## [0.8.0] - 2026-09-06
 
 ### Added

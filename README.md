@@ -291,6 +291,14 @@ make build     # build the package
 make tidy      # tidy Go modules
 ```
 
+Integration tests for MongoDB and PostgreSQL run in CI via service containers.
+Locally, they are skipped unless the corresponding environment variables are set:
+
+```bash
+MONGODB_URI=mongodb://localhost:27017/?replicaSet=rs0 go test ./mongo/
+POSTGRES_URI=postgres://postgres:postgres@localhost:5432/uow_test?sslmode=disable go test ./sql/
+```
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request. Before submitting, ensure your changes pass linting and tests:
