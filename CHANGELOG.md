@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0] - 2026-09-06
+
+### Changed
+- **Panic handling in `Run`**: if `fn` panics, the outermost `Run` now rolls
+  back the transaction and re-panics, so the caller still observes the panic
+  but no transaction is leaked. Previously a panic left the transaction open.
+
+### Documented
+- **Commit failure behavior**: if `Commit` fails, the transaction is left in an
+  unknown state and `Rollback` is not attempted.
+
 ## [0.6.0] - 2026-09-06
 
 ### Added

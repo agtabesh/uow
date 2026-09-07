@@ -71,13 +71,18 @@ func (u *UoW) Get(ctx context.Context) any {
 // nested calls reuse the outer transaction and their Commit/Rollback become no-ops.
 // If the function returns an error at the outermost level, the real transaction is rolled back.
 // Otherwise, the transaction is committed.
-func (u *UoW) Run(ctx context.Context, fn func(ctx context.Context) error) error {
+//
+// If fn panics, the panic is recovered at the outermost level so the transaction
+// can be rolled back, and then re-panicked so the caller still observes the panic.
+//
+// If Commit fails, the transaction is left in an unknown state and Rollback is
+// not attempted.
+func (u *UoW) Run(ctx context.Context, fn func(ctx context.Context) error) (err error) {
 	depth := depthFrom(ctx)
 
 	var uowCtx context.Context
 	if depth == 0 {
 		// Outermost call: start a real transaction.
-		var err error
 		uowCtx, err = u.runner.Ctx(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to start transaction: %w", err)
@@ -90,7 +95,23 @@ func (u *UoW) Run(ctx context.Context, fn func(ctx context.Context) error) error
 	// Increment the nesting depth so inner calls detect the nested state.
 	uowCtx = context.WithValue(uowCtx, depthKey, depth+1)
 
-	err := fn(uowCtx)
+	// Recover panics so the transaction is always cleaned up. The panic is
+	// re-panicked after rollback so callers still observe it.
+	defer func() {
+		if r := recover(); r != nil {
+			if depth == 0 {
+				rbErr := u.runner.Rollback(uowCtx)
+				if rbErr != nil {
+					err = fmt.Errorf("panic recovered (%v) and rollback also failed: %w", r, rbErr)
+				} else {
+					err = fmt.Errorf("panic recovered: %v", r)
+				}
+			}
+			panic(r)
+		}
+	}()
+
+	err = fn(uowCtx)
 	if err != nil {
 		if depth == 0 {
 			// Outermost: roll back the real transaction.

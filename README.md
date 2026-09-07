@@ -73,6 +73,11 @@ Orchestrates the transaction lifecycle. When you call `Run`, it executes the fol
 
 If both `fn` and `Rollback` fail, both errors are accessible via `errors.Is`.
 
+If `fn` panics, `Run` recovers the panic at the outermost level, rolls back the
+transaction, and re-panics so the caller still observes the panic. If `Commit`
+fails, the transaction is left in an unknown state and `Rollback` is not
+attempted.
+
 ## Usage
 
 The `uow` package provides a `UoW` struct which coordinates the unit of work. You'll need to provide a `Runner` implementation tailored to your data source. The `Runner` interface defines the necessary methods for managing transactions.
