@@ -591,3 +591,31 @@ func TestSqlTx_GetReturnTx(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// BenchmarkSqlTx_Commit measures the cost of a full SQL transaction lifecycle
+// with an in-memory SQLite database.
+func BenchmarkSqlTx_Commit(b *testing.B) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+
+	if _, err := db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)"); err != nil {
+		b.Fatal(err)
+	}
+
+	sqlTx := NewTx(db)
+	txs := uow.New(sqlTx)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := txs.Run(context.Background(), func(ctx context.Context) error {
+			_, err := txs.Get(ctx).(*sql.Tx).ExecContext(ctx, "INSERT INTO test (name) VALUES (?)", "bench")
+			return err
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
