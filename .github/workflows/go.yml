@@ -15,17 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mongo:
-        image: mongo:7
+        image: mongo:8
         ports:
           - 27017:27017
-        command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+        command: mongod --replSet rs0 --bind_ip_all --port 27017
         options: >-
           --health-cmd "mongosh --quiet --eval 'db.runCommand({ping: 1}).ok'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -43,7 +43,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v7
       with:
-        go-version: '1.24'
+        go-version: '1.27'
 
     - name: Lint
       uses: golangci/golangci-lint-action@v9
@@ -55,7 +55,7 @@ jobs:
 
     - name: Init Mongo replica set
       run: |
-        cid=$(docker ps -q --filter "ancestor=mongo:7")
+        cid=$(docker ps -q --filter "ancestor=mongo:8")
         docker exec "$cid" mongosh --quiet --eval 'rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]})' || true
         for i in $(seq 1 30); do
           state=$(docker exec "$cid" mongosh --quiet --eval 'rs.status().members[0].stateStr' 2>/dev/null | tr -d '\r')

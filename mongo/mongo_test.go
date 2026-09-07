@@ -7,25 +7,32 @@ import (
 	"testing"
 
 	"github.com/agtabesh/uow"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
+
+// newTestClient connects to MongoDB for integration tests. It skips the
+// test unless MONGODB_URI is set.
+func newTestClient(t *testing.T) *mongo.Client {
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		t.Skip("MONGODB_URI not set; skipping integration test")
+	}
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
+	return client
+}
 
 // TestTx_Integration tests MongoDB transaction commit and rollback with a
 // real MongoDB instance. It is skipped unless the MONGODB_URI environment
 // variable is set.
 func TestTx_Integration(t *testing.T) {
-	uri := os.Getenv("MONGODB_URI")
-	if uri == "" {
-		t.Skip("MONGODB_URI not set; skipping integration test")
-	}
-
+	client := newTestClient(t)
 	ctx := context.Background()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = client.Disconnect(ctx) }()
+	var err error
 
 	dbName := "uow_test"
 	collectionName := "test_integration"
@@ -56,17 +63,9 @@ func TestTx_Integration(t *testing.T) {
 
 // TestTx_Integration_Rollback tests MongoDB rollback with a real instance.
 func TestTx_Integration_Rollback(t *testing.T) {
-	uri := os.Getenv("MONGODB_URI")
-	if uri == "" {
-		t.Skip("MONGODB_URI not set; skipping integration test")
-	}
-
+	client := newTestClient(t)
 	ctx := context.Background()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = client.Disconnect(ctx) }()
+	var err error
 
 	dbName := "uow_test"
 	collectionName := "test_integration_rollback"
@@ -101,12 +100,7 @@ func TestTx_Integration_Rollback(t *testing.T) {
 // TestTx_Database_OutsideTransaction verifies that Database returns the
 // configured database handle when called outside a transaction.
 func TestTx_Database_OutsideTransaction(t *testing.T) {
-	//nolint:staticcheck // NewClient avoids a real connection; Connect would require a live server.
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	client := newTestClient(t)
 
 	mongoTx := NewTx(client, "test_db")
 	db := mongoTx.Database(context.Background())
@@ -118,12 +112,7 @@ func TestTx_Database_OutsideTransaction(t *testing.T) {
 // TestTx_Commit_OutsideTransaction verifies that Commit returns nil when no
 // transaction is active.
 func TestTx_Commit_OutsideTransaction(t *testing.T) {
-	//nolint:staticcheck // NewClient avoids a real connection; Connect would require a live server.
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	client := newTestClient(t)
 
 	mongoTx := NewTx(client, "test_db")
 	if err := mongoTx.Commit(context.Background()); err != nil {
@@ -134,12 +123,7 @@ func TestTx_Commit_OutsideTransaction(t *testing.T) {
 // TestTx_Rollback_OutsideTransaction verifies that Rollback returns nil when
 // no transaction is active.
 func TestTx_Rollback_OutsideTransaction(t *testing.T) {
-	//nolint:staticcheck // NewClient avoids a real connection; Connect would require a live server.
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	client := newTestClient(t)
 
 	mongoTx := NewTx(client, "test_db")
 	if err := mongoTx.Rollback(context.Background()); err != nil {
@@ -150,12 +134,7 @@ func TestTx_Rollback_OutsideTransaction(t *testing.T) {
 // TestTx_Get_OutsideTransaction verifies that Get returns a *mongo.Database
 // when called outside a transaction.
 func TestTx_Get_OutsideTransaction(t *testing.T) {
-	//nolint:staticcheck // NewClient avoids a real connection; Connect would require a live server.
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = client.Disconnect(context.Background()) }()
+	client := newTestClient(t)
 
 	mongoTx := NewTx(client, "test_db")
 	got := mongoTx.Get(context.Background())

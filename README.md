@@ -37,7 +37,7 @@ The library is split into subpackages so you only pull in the dependencies you n
 |---------|---------|---------------|
 | `github.com/agtabesh/uow` | Core: `Runner` interface, `UoW` orchestration | none (stdlib only) |
 | `github.com/agtabesh/uow/sql` | `Tx` for any `database/sql` database | none (stdlib only) |
-| `github.com/agtabesh/uow/mongo` | `Tx` for MongoDB | `go.mongodb.org/mongo-driver` |
+| `github.com/agtabesh/uow/mongo` | `Tx` for MongoDB | `go.mongodb.org/mongo-driver/v2` |
 | `github.com/agtabesh/uow/mock` | `Tx` for testing | none (stdlib only) |
 
 SQL users import only `uow` + `uow/sql` — the MongoDB driver is never pulled in.
@@ -85,7 +85,7 @@ The `uow` package provides a `UoW` struct which coordinates the unit of work. Yo
 Example implementations live in subpackages:
 
 - **`mock.Tx`** (`github.com/agtabesh/uow/mock`): A mock implementation for testing purposes.
-- **`mongo.Tx`** (`github.com/agtabesh/uow/mongo`): An implementation for MongoDB using `go.mongodb.org/mongo-driver/mongo`.
+- **`mongo.Tx`** (`github.com/agtabesh/uow/mongo`): An implementation for MongoDB using `go.mongodb.org/mongo-driver/v2/mongo`.
 - **`sql.Tx`** (`github.com/agtabesh/uow/sql`): An implementation for any SQL database via the standard `database/sql` interface.
 
 ### Example (using `mock.Tx`)
@@ -148,13 +148,13 @@ import (
 	"fmt"
 	"github.com/agtabesh/uow"
 	uowmongo "github.com/agtabesh/uow/mongo"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func main() {
 	// Replace with your MongoDB connection string
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		panic(err)
 	}

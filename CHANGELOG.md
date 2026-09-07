@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.0] - 2026-09-07
+
+### Breaking Changes
+- **MongoDB Go driver v2**: `uow/mongo` now uses `go.mongodb.org/mongo-driver/v2`.
+  Users must update their driver imports to the v2 module path
+  (`go.mongodb.org/mongo-driver/v2/mongo`). The v1 driver is deprecated.
+
+### Changed
+- **Go 1.26 minimum**: `go.mod` now requires Go 1.26.0 (the oldest
+  still-supported release). CI builds and tests with Go 1.27.
+- **pgx v5.10.0**: unpinned from v5.8.0 (requires Go 1.25+).
+- **CI service containers**: MongoDB `mongo:7` → `mongo:8`, PostgreSQL
+  `postgres:16` → `postgres:18`.
+
 ## [0.9.0] - 2026-09-07
 
 ### Added
