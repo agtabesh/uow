@@ -18,6 +18,12 @@ jobs:
         image: mongo:7
         ports:
           - 27017:27017
+        command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping: 1}).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
     - uses: actions/checkout@v4
 
@@ -34,7 +40,23 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Init Mongo replica set
+      run: |
+        cid=$(docker ps -q --filter "ancestor=mongo:7")
+        docker exec "$cid" mongosh --quiet --eval 'rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}]})' || true
+        for i in $(seq 1 30); do
+          state=$(docker exec "$cid" mongosh --quiet --eval 'rs.status().members[0].stateStr' 2>/dev/null | tr -d '\r')
+          echo "member state: $state"
+          if [ "$state" = "PRIMARY" ]; then
+            echo "replica set ready"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "replica set did not become PRIMARY"
+        exit 1
+
     - name: Test
       run: go test -race -v ./...
       env:
-        MONGODB_URI: mongodb://localhost:27017
+        MONGODB_URI: mongodb://localhost:27017/?replicaSet=rs0
