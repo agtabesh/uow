@@ -379,3 +379,25 @@ func TestRun_Panic_RollbackFailure(t *testing.T) {
 		t.Errorf("expected Rollback called once, got %d", r.rollbackCalls)
 	}
 }
+
+// BenchmarkRun measures the cost of a full transaction lifecycle with the
+// recordingRunner (no real database).
+func BenchmarkRun(b *testing.B) {
+	u := New(&recordingRunner{})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = u.Run(context.Background(), func(_ context.Context) error { return nil })
+	}
+}
+
+// BenchmarkRun_Nested measures the cost of a nested transaction (inner Run
+// reuses the outer context).
+func BenchmarkRun_Nested(b *testing.B) {
+	u := New(&recordingRunner{})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = u.Run(context.Background(), func(ctx context.Context) error {
+			return u.Run(ctx, func(_ context.Context) error { return nil })
+		})
+	}
+}

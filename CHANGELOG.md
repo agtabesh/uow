@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.0] - 2026-09-06
+
+### Added
+- **Mongo integration tests in CI**: the GitHub Actions workflow now starts a
+  MongoDB service container and sets `MONGODB_URI`, so the Mongo transaction
+  integration tests actually run instead of skipping.
+- **Dependabot**: weekly updates for Go modules and GitHub Actions.
+- **Godoc examples**: `ExampleUoW_Run_sql` (SQLite via the typed Executor) and
+  `ExampleUoW_Run_mongo` (mock via the typed State accessor).
+- **Benchmarks**: `BenchmarkRun`, `BenchmarkRun_Nested` (core), and
+  `BenchmarkSqlTx_Commit` (SQL).
+
+### Changed
+- **CI test command**: now runs with `-race`.
+
 ## [0.7.0] - 2026-09-06
 
 ### Changed
