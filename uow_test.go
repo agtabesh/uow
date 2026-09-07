@@ -275,7 +275,7 @@ func TestRun_CommitError(t *testing.T) {
 }
 
 // TestRun_Panic_Propagates verifies that a panic inside fn propagates to the
-// caller (Run does not recover panics).
+// caller and that the transaction is rolled back before re-panicking.
 func TestRun_Panic_Propagates(t *testing.T) {
 	r := &recordingRunner{}
 	u := New(r)
@@ -287,6 +287,12 @@ func TestRun_Panic_Propagates(t *testing.T) {
 	_ = u.Run(context.Background(), func(_ context.Context) error {
 		panic("boom")
 	})
+	if r.rollbackCalls != 1 {
+		t.Errorf("expected Rollback called once, got %d", r.rollbackCalls)
+	}
+	if r.commitCalls != 0 {
+		t.Errorf("expected Commit not called, got %d", r.commitCalls)
+	}
 }
 
 // TestRun_ContextPropagation verifies that fn receives the context returned by
@@ -329,5 +335,47 @@ func TestRun_GetDelegates(t *testing.T) {
 	u := New(r)
 	if got := u.Get(context.Background()); got != nil {
 		t.Errorf("expected nil from Get, got %v", got)
+	}
+}
+
+// TestRun_Nested_Panic_RollsBackOuter verifies that a panic in a nested Run
+// propagates to the outermost Run, which rolls back the transaction.
+func TestRun_Nested_Panic_RollsBackOuter(t *testing.T) {
+	r := &recordingRunner{}
+	u := New(r)
+	defer func() {
+		if recover() == nil {
+			t.Error("expected panic to propagate")
+		}
+	}()
+	_ = u.Run(context.Background(), func(ctx context.Context) error {
+		return u.Run(ctx, func(_ context.Context) error {
+			panic("inner boom")
+		})
+	})
+	if r.rollbackCalls != 1 {
+		t.Errorf("expected Rollback called once, got %d", r.rollbackCalls)
+	}
+	if r.commitCalls != 0 {
+		t.Errorf("expected Commit not called, got %d", r.commitCalls)
+	}
+}
+
+// TestRun_Panic_RollbackFailure verifies that when a panic occurs and Rollback
+// also fails, the panic still propagates to the caller.
+func TestRun_Panic_RollbackFailure(t *testing.T) {
+	rbErr := errors.New("rollback failed")
+	r := &recordingRunner{rollbackErr: rbErr}
+	u := New(r)
+	defer func() {
+		if recover() == nil {
+			t.Error("expected panic to propagate")
+		}
+	}()
+	_ = u.Run(context.Background(), func(_ context.Context) error {
+		panic("boom")
+	})
+	if r.rollbackCalls != 1 {
+		t.Errorf("expected Rollback called once, got %d", r.rollbackCalls)
 	}
 }
