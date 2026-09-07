@@ -3,7 +3,7 @@ module github.com/agtabesh/uow
 go 1.24.2
 
 require (
-	github.com/mattn/go-sqlite3 v1.14.44
+	github.com/mattn/go-sqlite3 v1.14.50
 	go.mongodb.org/mongo-driver v1.17.4
 )
 
