@@ -24,6 +24,19 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: uow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
     - uses: actions/checkout@v7
 
@@ -60,3 +73,4 @@ jobs:
       run: go test -race -v ./...
       env:
         MONGODB_URI: mongodb://localhost:27017/?replicaSet=rs0
+        POSTGRES_URI: postgres://postgres:postgres@localhost:5432/uow_test?sslmode=disable
